@@ -10,11 +10,22 @@ import com.getcapacitor.PluginMethod;
 public class DashlyBlink extends Plugin {
 
     @PluginMethod()
-    public void echo(PluginCall call) {
-        String value = call.getString("value");
+    public void connectToMagnet(PluginCall call) {
+        String ssid = call.getString("ssid");
 
         JSObject ret = new JSObject();
-        ret.put("value", value);
+        ret.put("ssid", ssid);
+        call.success(ret);
+    }
+
+    @PluginMethod()
+    public void sendWifiLogin(PluginCall call) {
+        String ssid = call.getString("ssid");
+        String password = call.getString("password");
+
+        JSObject ret = new JSObject();
+        ret.put("ssid", ssid);
+        ret.put("password", password);
         call.success(ret);
     }
 }

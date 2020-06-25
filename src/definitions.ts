@@ -5,5 +5,6 @@ declare module "@capacitor/core" {
 }
 
 export interface DashlyBlinkPlugin {
-  echo(options: { value: string }): Promise<{value: string}>;
+  connectToMagnet(ssid: string): Promise<{value: string}>;
+  sendWifiLogin(ssid:string, password: string): Promise<{value: string}>;
 }
