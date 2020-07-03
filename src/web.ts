@@ -9,6 +9,12 @@ export class DashlyBlinkWeb extends WebPlugin implements DashlyBlinkPlugin {
     });
   }
 
+  async checkWifiLogin(_ssid:string, _password: string): Promise<boolean> {
+    const message = 'Web not supported' 
+    console.log(message)
+    return false
+  }
+
   async connectToMagnet(_ssid: string): Promise<{value: string}> {
     const message = 'Web not supported' 
     console.log(message)

@@ -9,6 +9,21 @@ import NetworkExtension
 @objc(DashlyBlink)
 public class DashlyBlink: CAPPlugin {
     
+    @objc func checkWifiLogin(_ call: CAPPluginCall) {
+        guard let ssid = call.options["ssid"] as? String else {
+            call.reject("Must provide an ssid")
+            return
+        }
+        guard let password = call.options["password"] as? String else {
+            call.reject("Must provide an password")
+            return
+        }
+
+        print("checkWifiLogin: " + ssid + " " + password)
+
+        call.resolve()
+    }
+
     @objc func connectToMagnet(_ call: CAPPluginCall) {      
         guard let ssid = call.options["ssid"] as? String else {
             call.reject("Must provide an ssid")
@@ -17,22 +32,23 @@ public class DashlyBlink: CAPPlugin {
     
         print("connectToMagnet: " + ssid)
         
-        let configuration = NEHotspotConfiguration.init(ssid: ssid)
-        configuration.joinOnce = true
+        call.resolve()
+        // let configuration = NEHotspotConfiguration.init(ssid: ssid)
+        // configuration.joinOnce = true
 
-        NEHotspotConfigurationManager.shared.apply(configuration) { (error) in
-            if error != nil {
-                /*print(error?.localizedDescription ?? "")
-                call.reject(error?.localizedDescription., error, [
-                    "item1": true
-                ])*/
-                call.resolve();
-                //an error occurred
-            }
-            else {
-                //success
-                call.resolve();
-            }
+        // NEHotspotConfigurationManager.shared.apply(configuration) { (error) in
+        //     if error != nil {
+        //         /*print(error?.localizedDescription ?? "")
+        //         call.reject(error?.localizedDescription., error, [
+        //             "item1": true
+        //         ])*/
+        //         call.resolve();
+        //         //an error occurred
+        //     }
+        //     else {
+        //         //success
+        //         call.resolve();
+        //     }
         }
         
         
@@ -57,8 +73,8 @@ public class DashlyBlink: CAPPlugin {
             call.reject("Must provide an ssid")
             return
         }
-        guard let password = call.options["ssid"] as? String else {
-            call.reject("Must provide an ssid")
+        guard let password = call.options["password"] as? String else {
+            call.reject("Must provide an password")
             return
         }
 
