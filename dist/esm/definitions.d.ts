@@ -4,6 +4,7 @@ declare module "@capacitor/core" {
     }
 }
 export interface DashlyBlinkPlugin {
+    checkWifiLogin(ssid: string, password: string): Promise<boolean>;
     connectToMagnet(ssid: string): Promise<{
         value: string;
     }>;

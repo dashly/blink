@@ -15,6 +15,13 @@ export class DashlyBlinkWeb extends WebPlugin {
             platforms: ['web']
         });
     }
+    checkWifiLogin(_ssid, _password) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const message = 'Web not supported';
+            console.log(message);
+            return false;
+        });
+    }
     connectToMagnet(_ssid) {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
