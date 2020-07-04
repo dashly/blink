@@ -51,42 +51,52 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
         else if status == .restricted {
             self.locationPermissionResult = "restricted"
         }
-        else if status == .notDetermined {
+        else {
             self.locationPermissionResult = "notDetermined"
         }
     }
 
     @objc func enableLocationSevices(_ call: CAPPluginCall) {
-        
+        self.wait = true
         OperationQueue.main.addOperation{
             if self.locationManager == nil {
                 self.locationManager = CLLocationManager()
             }
             self.locationManager?.delegate = self
-            self.wait = false
             self.locationManager?.requestWhenInUseAuthorization()
         }
         
         while self.wait { } // TODO - REMOVE THIS - NEED TO LOCK THIS THREAD INSTEAD?
         
+        print("🚨[Dashly Blink] Location Services Permission Result: " + self.locationPermissionResult)
         call.resolve(["result" : self.locationPermissionResult])
     }
 
     @objc func isLocationServicesEnabled (_ call: CAPPluginCall)  {
-        if (self.locationManager == nil) {
-            self.locationManager = CLLocationManager()
+        self.wait = true
+        OperationQueue.main.addOperation{
+            if (self.locationManager == nil) {
+                self.locationManager = CLLocationManager()
+            }
+            self.wait = false
         }
-        call.resolve(["result" : CLLocationManager.locationServicesEnabled()])
+        
+        while self.wait { } // TODO - REMOVE THIS - NEED TO LOCK THIS THREAD INSTEAD?
+        
+        let enabled =  CLLocationManager.locationServicesEnabled()
+        print("🚨[Dashly Blink] Current Wifi SSID: " + String(enabled))
+        call.resolve(["result" : enabled])
     }
 
     @objc func getCurrentWifiSSID(_ call: CAPPluginCall) {
         let WiFissid = retrieveCurrentSSID() as String?
+        print("🚨[Dashly Blink] Current Wifi SSID: " + WiFissid!)
         call.resolve(["result": WiFissid])
     }
 
     @objc func connectToMagnet(_ call: CAPPluginCall) {      
         guard let ssid = call.options["ssid"] as? String else {
-            print("[Dashly Blink] Error: The magnet SSID was invalid.")
+            print("🚨[Dashly Blink] Error: The magnet SSID was invalid.")
             call.reject("InvalidBlinkSSID")
             return
         }
@@ -96,7 +106,7 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
 
         NEHotspotConfigurationManager.shared.apply(configuration) { (error) in
             if error != nil {
-                print("[Dashly Blink] Error: Couldn't connect to blink SSID.")
+                print("🚨[Dashly Blink] Error: Couldn't connect to blink SSID.")
                 call.reject("BlinkWifiConnectionFailed")
             }
             else {
@@ -127,16 +137,16 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
                     case .success:
                         guard let data = client.read(1024*10) else { return }
                         if let response = String(bytes: data, encoding: .utf8) {
-                            print("[Dashly Blink] Magnet connection success 🎉" + response)
+                            print("🚨[Dashly Blink] Magnet connection success 🎉" + response)
                             call.resolve(["result": "BlinkSetupSuccessful"])
                         }
                     case .failure(let error):
-                        print("[Dashly Blink] Error connecting" + error.localizedDescription)
+                        print("🚨[Dashly Blink] Error connecting" + error.localizedDescription)
                         call.reject("BlinkSetupFailed")
                 }
             
             case .failure(let error):
-                print("[Dashly Blink] Error " + error.localizedDescription)
+                print("🚨[Dashly Blink] Error " + error.localizedDescription)
                 call.reject("TCPBlinkConnectionFailed")
         }
     }
