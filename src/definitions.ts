@@ -5,7 +5,9 @@ declare module "@capacitor/core" {
 }
 
 export interface DashlyBlinkPlugin {
-  checkWifiLogin(ssid:string, password: string): Promise<boolean>
-  connectToMagnet(ssid: string): Promise<{value: string}>
-  sendWifiLogin(ssid:string, password: string): Promise<{value: string}>
+  enableLocationSevices(ssid:string, password: string): Promise<string>
+  isLocationServicesEnabled(ssid:string, password: string): Promise<boolean>
+  getCurrentWifiSSID(ssid:string, password: string): Promise<string>
+  connectToMagnet(ssid: string): Promise<string>
+  sendWifiLoginToMagnet(ssid:string, password: string): Promise<{value: string}>
 }

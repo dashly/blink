@@ -10,13 +10,20 @@ import com.getcapacitor.PluginMethod;
 public class DashlyBlink extends Plugin {
 
     @PluginMethod()
-    public void checkWifiLogin(PluginCall call) {
-        String ssid = call.getString("ssid");
-        String password = call.getString("password");
-
+    public void enableLocationSevices(PluginCall call) {
         JSObject ret = new JSObject();
-        ret.put("ssid", ssid);
-        ret.put("password", password);
+        call.success(ret);
+    }
+
+    @PluginMethod()
+    public void isLocationServicesEnabled(PluginCall call) {
+        JSObject ret = new JSObject();
+        call.success(ret);
+    }
+
+    @PluginMethod()
+    public void getCurrentWifiSSID(PluginCall call) {
+        JSObject ret = new JSObject();
         call.success(ret);
     }
 
@@ -30,7 +37,7 @@ public class DashlyBlink extends Plugin {
     }
 
     @PluginMethod()
-    public void sendWifiLogin(PluginCall call) {
+    public void sendWifiLoginToMagnet(PluginCall call) {
         String ssid = call.getString("ssid");
         String password = call.getString("password");
 

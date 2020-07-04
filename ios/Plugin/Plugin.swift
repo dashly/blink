@@ -1,107 +1,141 @@
 import Foundation
 import Capacitor
 import NetworkExtension
-
+import SwiftSocket
+import SystemConfiguration.CaptiveNetwork
+import CoreLocation.CLLocationManager
 
 /**
  * Please read the Capacitor iOS Plugin Development Guide
  * here: https://capacitor.ionicframework.com/docs/plugins/ios
  */
 @objc(DashlyBlink)
-public class DashlyBlink: CAPPlugin {
+public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
     
-    @objc func checkWifiLogin(_ call: CAPPluginCall) {
-        guard let ssid = call.options["ssid"] as? String else {
-            call.reject("Must provide an ssid")
-            return
-        }
-        guard let password = call.options["password"] as? String else {
-            call.reject("Must provide an password")
-            return
-        }
+    var wait: Bool = true
+    var locationPermissionResult: String = "PermissionNotGranted"
+    var locationManager: CLLocationManager?
+    
+    // retrieve the current SSID from a connected Wifi network
+    private func retrieveCurrentSSID() -> String? {
+        let interfaces = CNCopySupportedInterfaces() as? [String]
+        let interface = interfaces?
+            .compactMap { [weak self] in self?.retrieveInterfaceInfo(from: $0) }
+            .first
 
-        print("checkWifiLogin: " + ssid + " " + password)
+        return interface
+    }
 
-        call.resolve()
+    // Retrieve information about a specific network interface
+    private func retrieveInterfaceInfo(from interface: String) -> String? {
+        guard let interfaceInfo = CNCopyCurrentNetworkInfo(interface as CFString) as? [String: AnyObject],
+            let ssid = interfaceInfo[kCNNetworkInfoKeySSID as String] as? String
+            else {
+                return nil
+        }
+        return ssid
+    }
+    
+    public func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        self.wait = false
+        
+        if status == .authorizedAlways {
+            self.locationPermissionResult = "authorizedAlways"
+        }
+        else status == .authorizedWhenInUse {
+            self.locationPermissionResult = "autauthorizedWhenInUse"
+        }
+        else status == .denied {
+            self.locationPermissionResult = "denied"
+        }
+        else status == .restricted {
+            self.locationPermissionResult = "restricted"
+        }
+        else status == .notDetermined {
+            self.locationPermissionResult = "notDetermined"
+        }
+    }
+
+    @objc func enableLocationSevices(_ call: CAPPluginCall) {
+        
+        OperationQueue.main.addOperation{
+            if (!self.locationManager)
+                self.locationManager = CLLocationManager()
+            self.locationManager?.delegate = self
+            self.wait = false
+            self.locationManager?.requestWhenInUseAuthorization()
+        }
+        
+        while self.wait { } // TODO - REMOVE THIS - NEED TO LOCK THIS THREAD INSTEAD?
+        
+        call.resolve(self.locationPermissionResult)
+    }
+
+    @objc func isLocationServicesEnabled (_ call: CAPPluginCall)  {
+        if (!self.locationManager)
+            self.locationManager = CLLocationManager()
+        call.resolve(self.locationManager.locationServicesEnabled())
+    }
+
+    @objc func getCurrentWifiSSID(_ call: CAPPluginCall) {
+        let WiFissid = retrieveCurrentSSID() as String?
+        call.resolve(WiFissid)
     }
 
     @objc func connectToMagnet(_ call: CAPPluginCall) {      
         guard let ssid = call.options["ssid"] as? String else {
-            call.reject("Must provide an ssid")
+            print("[Dashly Blink] Error: The magnet SSID was invalid.")
+            call.reject("InvalidBlinkSSID")
             return
         }
     
-        
+        let configuration = NEHotspotConfiguration.init(ssid: ssid)
+        configuration.joinOnce = true
 
-         let configuration = NEHotspotConfiguration.init(ssid: ssid)
-         configuration.joinOnce = true
-
-         NEHotspotConfigurationManager.shared.apply(configuration) { (error) in
-             if error != nil {
-                 print(error?.localizedDescription ?? "")
-                 /*call.reject(error?.localizedDescription, error, [
-                     "item1": true
-                 ])*/
-                 //an error occurred
-                call.resolve();
-             }
-             else {
-                 //success
-                print("Magnet connection success: " + ssid)
-                
-                 call.resolve();
-             }
+        NEHotspotConfigurationManager.shared.apply(configuration) { (error) in
+            if error != nil {
+                print("[Dashly Blink] Error: Couldn't connect to blink SSID.")
+                call.reject("BlinkWifiConnectionFailed")
+            }
+            else {
+                call.resolve("BlinkConnected");
+            }
         }
-        
-        
-        /*
-        Pass data back
-        call.resolve([
-            "added": true,
-            "info": [
-                "id": id
-            ]
-        ])
-        
-        Pass error back
-        call.reject(error.localizedDescription, error, [
-            "item1": true
-        ])
-        */
     }
 
-    @objc func sendWifiLogin(_ call: CAPPluginCall) {
+    @objc func sendWifiLoginToMagnet(_ call: CAPPluginCall) {
         
         print(call.options["ssid"] as? String)
         guard let ssid = call.options["ssid"] as? String else {
-            call.reject("Must provide an ssid")
+            call.reject("InvalidWifiSSID")
             return
         }
         guard let password = call.options["password"] as? String else {
-            call.reject("Must provide an password")
+            call.reject("InvalidWifiPassword")
             return
         }
         
-        /*let client:TCPClient = TCPClient(addr: "127.0.0.1", port: 8080)
-        var (success,errmsg)=client.connect(timeout: 1)
-        if success{
-            var (success,errmsg)=client.send(str:"|~\0" )
-            if success{
-                let data=client.read(1024*10)
-                if let d=data{
-                    if let str=String(bytes: d, encoding: NSUTF8StringEncoding){
-                        print(str)
-                    }
+        let client = TCPClient(address: "192.168.4.22", port: 80)
+        
+        // Returns -1 for success
+        // Returns error 2 for bad wifi password
+        switch client.connect(timeout: 3) {
+            case .success:
+                switch client.send(string: String(ssid.count) + " " + String(password.count) as String + " " +  ssid + password ) {
+                    case .success:
+                        guard let data = client.read(1024*10) else { return }
+                        if let response = String(bytes: data, encoding: .utf8) {
+                            print("[Dashly Blink] Magnet connection success 🎉" + response)
+                            call.resolve("BlinkSetupSuccessful")
+                        }
+                    case .failure(let error):
+                        print("[Dashly Blink] Error connecting" + error.localizedDescription)
+                        call.reject("BlinkSetupFailed")
                 }
-            }else{
-                print(errmsg)
-            }
-        }else{
-            print(errmsg)
-        }*/
-
-        print("sendWifiLogin: " + ssid + " " + password)
-
-        call.resolve()
+            
+            case .failure(let error):
+                print("[Dashly Blink] Error " + error.localizedDescription)
+                call.reject("TCPBlinkConnectionFailed")
+        }
     }
 }
