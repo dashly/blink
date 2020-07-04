@@ -2,13 +2,13 @@ import { WebPlugin } from '@capacitor/core';
 import { DashlyBlinkPlugin } from './definitions';
 export declare class DashlyBlinkWeb extends WebPlugin implements DashlyBlinkPlugin {
     constructor();
-    enableLocationSevices(_ssid: string, _password: string): Promise<{
+    enableLocationSevices(): Promise<{
         value: string;
     }>;
-    isLocationServicesEnabled(_ssid: string, _password: string): Promise<{
+    isLocationServicesEnabled(): Promise<{
         value: boolean;
     }>;
-    getCurrentWifiSSID(_ssid: string, _password: string): Promise<{
+    getCurrentWifiSSID(): Promise<{
         value: string;
     }>;
     connectToMagnet(_ssid: string): Promise<{

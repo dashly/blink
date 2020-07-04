@@ -9,20 +9,20 @@ export class DashlyBlinkWeb extends WebPlugin implements DashlyBlinkPlugin {
     });
   }
 
-  async enableLocationSevices(_ssid:string, _password: string): Promise<{value: string}> {
+  async enableLocationSevices(): Promise<{value: string}> {
     const message = 'Web not supported' 
     console.log(message)
     return { value: message }
   }
 
 
-  async isLocationServicesEnabled(_ssid:string, _password: string): Promise<{value: boolean}> {
+  async isLocationServicesEnabled(): Promise<{value: boolean}> {
     const message = 'Web not supported' 
     console.log(message)
     return { value: false }
   }
 
-  async getCurrentWifiSSID(_ssid:string, _password: string): Promise<{value: string}> {
+  async getCurrentWifiSSID(): Promise<{value: string}> {
     const message = 'Web not supported' 
     console.log(message)
     return { value: message }

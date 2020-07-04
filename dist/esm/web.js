@@ -15,21 +15,21 @@ export class DashlyBlinkWeb extends WebPlugin {
             platforms: ['web']
         });
     }
-    enableLocationSevices(_ssid, _password) {
+    enableLocationSevices() {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
             return { value: message };
         });
     }
-    isLocationServicesEnabled(_ssid, _password) {
+    isLocationServicesEnabled() {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
             return { value: false };
         });
     }
-    getCurrentWifiSSID(_ssid, _password) {
+    getCurrentWifiSSID() {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
