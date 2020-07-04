@@ -4,10 +4,18 @@ declare module "@capacitor/core" {
     }
 }
 export interface DashlyBlinkPlugin {
-    enableLocationSevices(ssid: string, password: string): Promise<string>;
-    isLocationServicesEnabled(ssid: string, password: string): Promise<boolean>;
-    getCurrentWifiSSID(ssid: string, password: string): Promise<string>;
-    connectToMagnet(ssid: string): Promise<string>;
+    enableLocationSevices(ssid: string, password: string): Promise<{
+        value: string;
+    }>;
+    isLocationServicesEnabled(ssid: string, password: string): Promise<{
+        value: boolean;
+    }>;
+    getCurrentWifiSSID(ssid: string, password: string): Promise<{
+        value: string;
+    }>;
+    connectToMagnet(ssid: string): Promise<{
+        value: string;
+    }>;
     sendWifiLoginToMagnet(ssid: string, password: string): Promise<{
         value: string;
     }>;

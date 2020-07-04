@@ -19,28 +19,28 @@ export class DashlyBlinkWeb extends WebPlugin {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
-            return message;
+            return { value: message };
         });
     }
     isLocationServicesEnabled(_ssid, _password) {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
-            return false;
+            return { value: false };
         });
     }
     getCurrentWifiSSID(_ssid, _password) {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
-            return message;
+            return { value: message };
         });
     }
     connectToMagnet(_ssid) {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
-            return message;
+            return { value: message };
         });
     }
     sendWifiLoginToMagnet(_ssid, _password) {
