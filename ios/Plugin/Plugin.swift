@@ -12,9 +12,9 @@ import CoreLocation.CLLocationManager
 @objc(DashlyBlink)
 public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
     
-    var wait: Bool = true
     var locationPermissionResult: String = "PermissionNotGranted"
     var locationManager: CLLocationManager?
+    private var enableLocationServicesCallback: CAPPluginCall?
     
     // retrieve the current SSID from a connected Wifi network
     private func retrieveCurrentSSID() -> String? {
@@ -37,27 +37,33 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
     }
     
     public func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        self.wait = false
         
         if status == .authorizedAlways {
+            print("🚨[Dashly Blink] Location Services Permission Result: authorizedAlways")
             self.locationPermissionResult = "authorizedAlways"
+            self.enableLocationServicesCallback?.resolve(["result" :"authorizedAlways"])
         }
         else if status == .authorizedWhenInUse {
-            self.locationPermissionResult = "autauthorizedWhenInUse"
+            print("🚨[Dashly Blink] Location Services Permission Result: authorizedWhenInUse")
+            self.locationPermissionResult = "authorizedWhenInUse"
+            self.enableLocationServicesCallback?.resolve(["result" :"authorizedWhenInUse"])
         }
         else if status == .denied {
+            print("🚨[Dashly Blink] Location Services Permission Result: denied")
             self.locationPermissionResult = "denied"
+            self.enableLocationServicesCallback?.resolve(["result" :"denied"])
         }
         else if status == .restricted {
+            print("🚨[Dashly Blink] Location Services Permission Result: restricted")
             self.locationPermissionResult = "restricted"
+            self.enableLocationServicesCallback?.resolve(["result" :"restricted"])
         }
-        else {
-            self.locationPermissionResult = "notDetermined"
-        }
+//        else {
+//             "notDetermined"
+//        }
     }
 
     @objc func enableLocationSevices(_ call: CAPPluginCall) {
-        self.wait = true
         OperationQueue.main.addOperation{
             if self.locationManager == nil {
                 self.locationManager = CLLocationManager()
@@ -66,26 +72,33 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
             self.locationManager?.requestWhenInUseAuthorization()
         }
         
-        while self.wait { } // TODO - REMOVE THIS - NEED TO LOCK THIS THREAD INSTEAD?
-        
-        print("🚨[Dashly Blink] Location Services Permission Result: " + self.locationPermissionResult)
-        call.resolve(["result" : self.locationPermissionResult])
+        self.enableLocationServicesCallback = call
     }
 
     @objc func isLocationServicesEnabled (_ call: CAPPluginCall)  {
-        self.wait = true
         OperationQueue.main.addOperation{
             if (self.locationManager == nil) {
                 self.locationManager = CLLocationManager()
             }
-            self.wait = false
+            if (CLLocationManager.locationServicesEnabled()) {
+                let status: CLAuthorizationStatus = CLLocationManager.authorizationStatus()
+
+                if (status == CLAuthorizationStatus.authorizedAlways ||
+                    status == CLAuthorizationStatus.authorizedWhenInUse )
+                {
+                    print("🚨[Dashly Blink] Is location enabled: Yes")
+                    call.resolve(["result" : true])
+                }
+                else {
+                    print("🚨[Dashly Blink] Is location enabled: No")
+                    call.resolve(["result" : false])
+                }
+            }
+            else {
+                print("🚨[Dashly Blink] Is location enabled: No")
+                call.resolve(["result" : false])
+            }
         }
-        
-        while self.wait { } // TODO - REMOVE THIS - NEED TO LOCK THIS THREAD INSTEAD?
-        
-        let enabled =  CLLocationManager.locationServicesEnabled()
-        print("🚨[Dashly Blink] Current Wifi SSID: " + String(enabled))
-        call.resolve(["result" : enabled])
     }
 
     @objc func getCurrentWifiSSID(_ call: CAPPluginCall) {
@@ -127,11 +140,51 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
             return
         }
         
+        let packet = String(ssid.count) + " " + String(password.count) + " " +  ssid + password
+        
+        let client = TCPClient(address: "192.168.4.22", port: 80)
+        
+        var connected = false
+        var connectionAttempts = 0
+        while (!connected) {
+            print("🚨[Dashly Blink] Socket connection attempt " + String(connectionAttempts))
+            switch client.connect(timeout: 10) {
+                case .success:
+                    connected = true
+                case .failure( _):
+                    sleep(1)
+                    connectionAttempts += 1
+            }
+            if (connectionAttempts == 10) {
+                connected = false
+            }
+        }
+        
+        if (connected == false) {
+            print("🚨[Dashly Blink] Couldn't create a socket connection")
+            call.reject("TCPBlinkConnectionFailed")
+        }
+        else {
+            switch client.send(string: packet) {
+                case .success:
+                   guard let data = client.read(1024*10) else { return }
+                   if let response = String(bytes: data, encoding: .utf8) {
+                       print("🚨[Dashly Blink] Magnet connection success 🎉" + response)
+                       call.resolve(["result": "BlinkSetupSuccessful"])
+                   }
+               case .failure(let error):
+                   print("🚨[Dashly Blink] Error connecting" + error.localizedDescription)
+                   call.reject("BlinkSetupFailed")
+               }
+        }
+        
+        
+        /*
         let client = TCPClient(address: "192.168.4.22", port: 80)
         
         // Returns -1 for success
         // Returns error 2 for bad wifi password
-        switch client.connect(timeout: 3) {
+        switch client.connect(timeout: 10) {
             case .success:
                 switch client.send(string: String(ssid.count) + " " + String(password.count) as String + " " +  ssid + password ) {
                     case .success:
@@ -148,6 +201,36 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
             case .failure(let error):
                 print("🚨[Dashly Blink] Error " + error.localizedDescription)
                 call.reject("TCPBlinkConnectionFailed")
+        }*/
+    }
+    
+    private func sendPacket(packet: String) -> Bool {
+        let client = TCPClient(address: "192.168.4.22", port: 80)
+        
+        // Returns -1 for success
+        // Returns error 2 for bad wifi password
+        switch client.connect(timeout: 10) {
+            case .success:
+                switch client.send(string: packet) {
+                    case .success:
+                        guard let data = client.read(1024*10) else { return false }
+                        if let response = String(bytes: data, encoding: .utf8) {
+                            client.close()
+                            print("🚨[Dashly Blink] Magnet connection success 🎉" + response)
+                            return true
+                        }
+                    case .failure(let error):
+                        client.close()
+                        print("🚨[Dashly Blink] Error connecting" + error.localizedDescription)
+                        return false
+                }
+            
+            case .failure(let error):
+                client.close()
+                print("🚨[Dashly Blink] Error " + error.localizedDescription)
+                return false
         }
+        
+        return false
     }
 }
