@@ -16,10 +16,10 @@ export class DashlyBlinkWeb extends WebPlugin implements DashlyBlinkPlugin {
   }
 
 
-  async isLocationServicesEnabled(): Promise<{value: boolean}> {
+  async isLocationServicesEnabled(): Promise<{value: string}> {
     const message = 'Web not supported' 
     console.log(message)
-    return { value: false }
+    return { value: "BlinkOK" }
   }
 
   async getCurrentWifiSSID(): Promise<{value: string}> {

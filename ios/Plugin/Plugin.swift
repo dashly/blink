@@ -18,7 +18,8 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
     
     // retrieve the current SSID from a connected Wifi network
     private func retrieveCurrentSSID() -> String? {
-        let interfaces = CNCopySupportedInterfaces() as? [String]
+        let supportedInterfaces = CNCopySupportedInterfaces()
+        let interfaces = supportedInterfaces as? [String]
         let interface = interfaces?
             .compactMap { [weak self] in self?.retrieveInterfaceInfo(from: $0) }
             .first
@@ -87,30 +88,40 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
                     status == CLAuthorizationStatus.authorizedWhenInUse )
                 {
                     print("🚨[Dashly Blink] Is location enabled: Yes")
-                    call.resolve(["result" : true])
+                    call.resolve(["result" : "BlinkOK"])
                 }
                 else {
                     print("🚨[Dashly Blink] Is location enabled: No")
-                    call.resolve(["result" : false])
+                    call.resolve(["result" : "BlinkNotOK"])
                 }
             }
             else {
                 print("🚨[Dashly Blink] Is location enabled: No")
-                call.resolve(["result" : false])
+                call.resolve(["result" : "BlinkNotOK"])
             }
         }
     }
 
     @objc func getCurrentWifiSSID(_ call: CAPPluginCall) {
         let WiFissid = retrieveCurrentSSID() as String?
-        print("🚨[Dashly Blink] Current Wifi SSID: " + WiFissid!)
-        call.resolve(["result": WiFissid])
+        
+        if (WiFissid == nil) {
+             print("🚨[Dashly Blink] WiFI SSID not found")
+            call.resolve(["result": ""])
+        }
+        else {
+            print("🚨[Dashly Blink] Current Wifi SSID: " + WiFissid!)
+            call.resolve(["result": WiFissid as String?])
+        }
     }
 
-    @objc func connectToMagnet(_ call: CAPPluginCall) {      
+    @objc func connectToMagnet(_ call: CAPPluginCall) {
+        
+        print("🚨[Dashly Blink] connectToMagnet")
+        
         guard let ssid = call.options["ssid"] as? String else {
             print("🚨[Dashly Blink] Error: The magnet SSID was invalid.")
-            call.reject("InvalidBlinkSSID")
+            call.reject("Blink108")
             return
         }
     
@@ -119,88 +130,85 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
 
         NEHotspotConfigurationManager.shared.apply(configuration) { (error) in
             if error != nil {
-                print("🚨[Dashly Blink] Error: Couldn't connect to blink SSID.")
-                call.reject("BlinkWifiConnectionFailed")
+                let errorCode = error as NSError?
+                print("🚨[Dashly Blink] Error: Couldn't connect to blink SSID. " + String(errorCode!.code) )
+                call.reject("Blink102")
             }
             else {
-                call.resolve(["result": "BlinkConnected"]);
+                // This doe not mean it was a success
+                //
+                // Wait a few seconds for the case of showing "Unable to join the..." dialog.
+                // Check reachability to the device because "error == nil" does not means success.
+                
+                let checkAttempts = 0
+                while (checkAttempts < 6) {
+                    checkAttempts++
+                    sleep(1)
+                    
+                    let WiFissid = self.retrieveCurrentSSID() as String?
+                    if (WiFissid != ssid) {
+                        call.reject("Blink102");
+                    }
+                    else {
+                        call.resolve(["result": "BlinkOK"]);
+                    }
+                }
             }
         }
     }
 
     @objc func sendWifiLoginToMagnet(_ call: CAPPluginCall) {
         
-        print(call.options["ssid"] as? String)
-        guard let ssid = call.options["ssid"] as? String else {
-            call.reject("InvalidWifiSSID")
-            return
+        call.resolve(["result": "BlinkOK"])
+        
+        /*guard let ssid = call.options["ssid"] as? String else {
+            return call.reject("Blink106")
         }
         guard let password = call.options["password"] as? String else {
-            call.reject("InvalidWifiPassword")
-            return
+            return call.reject("Blink107")
         }
+        
+        print("🚨[Dashly Blink] SSID: " + ssid + " Password: " + password)
         
         let packet = String(ssid.count) + " " + String(password.count) + " " +  ssid + password
         
         let client = TCPClient(address: "192.168.4.22", port: 80)
         
-        var connected = false
+        var finish = false
+        var failed = false
         var connectionAttempts = 0
-        while (!connected) {
+        while (!finish) {
             print("🚨[Dashly Blink] Socket connection attempt " + String(connectionAttempts))
-            switch client.connect(timeout: 10) {
+            switch client.connect(timeout: 3) {
                 case .success:
-                    connected = true
+                    finish = true
                 case .failure( _):
                     sleep(1)
                     connectionAttempts += 1
             }
             if (connectionAttempts == 10) {
-                connected = false
+                finish = true
+                failed = true
             }
         }
         
-        if (connected == false) {
+        if (failed == true) {
             print("🚨[Dashly Blink] Couldn't create a socket connection")
-            call.reject("TCPBlinkConnectionFailed")
+            call.reject("Blink103")
         }
         else {
+            print("🚨[Dashly Blink] Sending packet")
             switch client.send(string: packet) {
                 case .success:
-                   guard let data = client.read(1024*10) else { return }
-                   if let response = String(bytes: data, encoding: .utf8) {
-                       print("🚨[Dashly Blink] Magnet connection success 🎉" + response)
-                       call.resolve(["result": "BlinkSetupSuccessful"])
-                   }
+                   //guard let data = client.read(1024*10) else { return }
+                   //if let response = String(bytes: data, encoding: .utf8) {
+                    print("🚨[Dashly Blink] Magnet connection success 🎉")
+                    call.resolve(["result": "BlinkOK"])
+                
                case .failure(let error):
                    print("🚨[Dashly Blink] Error connecting" + error.localizedDescription)
-                   call.reject("BlinkSetupFailed")
+                   call.reject("Blink104")
                }
-        }
-        
-        
-        /*
-        let client = TCPClient(address: "192.168.4.22", port: 80)
-        
-        // Returns -1 for success
-        // Returns error 2 for bad wifi password
-        switch client.connect(timeout: 10) {
-            case .success:
-                switch client.send(string: String(ssid.count) + " " + String(password.count) as String + " " +  ssid + password ) {
-                    case .success:
-                        guard let data = client.read(1024*10) else { return }
-                        if let response = String(bytes: data, encoding: .utf8) {
-                            print("🚨[Dashly Blink] Magnet connection success 🎉" + response)
-                            call.resolve(["result": "BlinkSetupSuccessful"])
-                        }
-                    case .failure(let error):
-                        print("🚨[Dashly Blink] Error connecting" + error.localizedDescription)
-                        call.reject("BlinkSetupFailed")
-                }
-            
-            case .failure(let error):
-                print("🚨[Dashly Blink] Error " + error.localizedDescription)
-                call.reject("TCPBlinkConnectionFailed")
         }*/
     }
     
