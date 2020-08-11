@@ -88,16 +88,20 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
                     status == CLAuthorizationStatus.authorizedWhenInUse )
                 {
                     print("🚨[Dashly Blink] Is location enabled: Yes")
-                    call.resolve(["result" : "BlinkOK"])
+                    call.resolve(["result" : "BlinkLocationEnabled"])
+                }
+                else if (status == CLAuthorizationStatus.notDetermined){
+                    print("🚨[Dashly Blink] Is location enabled: No")
+                    call.resolve(["result" : "BlinkLocationNotEnabled"])
                 }
                 else {
                     print("🚨[Dashly Blink] Is location enabled: No")
-                    call.resolve(["result" : "BlinkNotOK"])
+                    call.resolve(["result" : "BlinkLocationDenied"])
                 }
             }
             else {
                 print("🚨[Dashly Blink] Is location enabled: No")
-                call.resolve(["result" : "BlinkNotOK"])
+                call.resolve(["result" : "BlinkLocationDenied"])
             }
         }
     }
@@ -125,6 +129,8 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
             return
         }
     
+        let homeWiFissid = retrieveCurrentSSID() as String?
+        
         let configuration = NEHotspotConfiguration.init(ssid: ssid)
         configuration.joinOnce = true
 
@@ -132,7 +138,7 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
             if error != nil {
                 let errorCode = error as NSError?
                 print("🚨[Dashly Blink] Error: Couldn't connect to blink SSID. " + String(errorCode!.code) )
-                call.reject("Blink102")
+                call.reject("Blink108")
             }
             else {
                 // This doe not mean it was a success
@@ -140,28 +146,27 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
                 // Wait a few seconds for the case of showing "Unable to join the..." dialog.
                 // Check reachability to the device because "error == nil" does not means success.
                 
-                let checkAttempts = 0
-                while (checkAttempts < 6) {
-                    checkAttempts++
+                var checkAttempts = 0
+                while (checkAttempts <= 6) {
+                    checkAttempts = checkAttempts + 1
                     sleep(1)
                     
                     let WiFissid = self.retrieveCurrentSSID() as String?
-                    if (WiFissid != ssid) {
-                        call.reject("Blink102");
-                    }
-                    else {
+                    if (WiFissid == ssid) {
                         call.resolve(["result": "BlinkOK"]);
+                        return 
                     }
                 }
+
+                call.reject("Blink102");
             }
         }
     }
 
     @objc func sendWifiLoginToMagnet(_ call: CAPPluginCall) {
+ 
         
-        call.resolve(["result": "BlinkOK"])
-        
-        /*guard let ssid = call.options["ssid"] as? String else {
+        guard let ssid = call.options["ssid"] as? String else {
             return call.reject("Blink106")
         }
         guard let password = call.options["password"] as? String else {
@@ -194,6 +199,7 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
         
         if (failed == true) {
             print("🚨[Dashly Blink] Couldn't create a socket connection")
+            reconnectToHomeSSID(ssid: ssid)
             call.reject("Blink103")
         }
         else {
@@ -206,10 +212,17 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
                     call.resolve(["result": "BlinkOK"])
                 
                case .failure(let error):
+                reconnectToHomeSSID(ssid: ssid)
                    print("🚨[Dashly Blink] Error connecting" + error.localizedDescription)
                    call.reject("Blink104")
                }
-        }*/
+        }
+    }
+    
+    private func reconnectToHomeSSID(ssid: String) {
+        let configuration = NEHotspotConfiguration.init(ssid: ssid)
+        configuration.joinOnce = true
+        NEHotspotConfigurationManager.shared.apply(configuration) { (error) in}
     }
     
     private func sendPacket(packet: String) -> Bool {
