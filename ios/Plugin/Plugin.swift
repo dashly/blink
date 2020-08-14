@@ -154,11 +154,12 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
                     let WiFissid = self.retrieveCurrentSSID() as String?
                     if (WiFissid == ssid) {
                         call.resolve(["result": "BlinkOK"]);
-                        return 
+                        return
                     }
                 }
 
                 call.reject("Blink102");
+                
             }
         }
     }
