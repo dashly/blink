@@ -76,6 +76,10 @@ public class DashlyBlink: CAPPlugin, CLLocationManagerDelegate {
         self.enableLocationServicesCallback = call
     }
 
+    @objc func isBlinkSupported(_ call: CAPPluginCall)  {
+        call.resolve(["result" : true])
+    }
+
     @objc func isLocationServicesEnabled (_ call: CAPPluginCall)  {
         OperationQueue.main.addOperation{
             if (self.locationManager == nil) {

@@ -5,6 +5,7 @@ declare module "@capacitor/core" {
 }
 
 export interface DashlyBlinkPlugin {
+  isBlinkSupported(): Promise<{value: boolean}>
   enableLocationSevices(): Promise<{value: string}>
   isLocationServicesEnabled(): Promise<{value: string}>
   getCurrentWifiSSID(): Promise<{value: string}>

@@ -9,12 +9,15 @@ export class DashlyBlinkWeb extends WebPlugin implements DashlyBlinkPlugin {
     });
   }
 
+  isBlinkSupported(): Promise<{ value: boolean }> {
+    return Promise.resolve({ value: true })
+  }
+
   async enableLocationSevices(): Promise<{value: string}> {
     const message = 'Web not supported' 
     console.log(message)
     return { value: message }
   }
-
 
   async isLocationServicesEnabled(): Promise<{value: string}> {
     const message = 'Web not supported' 
