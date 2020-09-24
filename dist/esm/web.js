@@ -15,6 +15,11 @@ export class DashlyBlinkWeb extends WebPlugin {
             platforms: ['web']
         });
     }
+    isBlinkSupported() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return Promise.resolve({ value: true });
+        });
+    }
     enableLocationSevices() {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
@@ -26,7 +31,7 @@ export class DashlyBlinkWeb extends WebPlugin {
         return __awaiter(this, void 0, void 0, function* () {
             const message = 'Web not supported';
             console.log(message);
-            return { value: false };
+            return { value: "BlinkOK" };
         });
     }
     getCurrentWifiSSID() {

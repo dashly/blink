@@ -9,7 +9,7 @@ export class DashlyBlinkWeb extends WebPlugin implements DashlyBlinkPlugin {
     });
   }
 
-  isBlinkSupported(): Promise<{ value: boolean }> {
+  async isBlinkSupported(): Promise<{ value: boolean }> {
     return Promise.resolve({ value: true })
   }
 

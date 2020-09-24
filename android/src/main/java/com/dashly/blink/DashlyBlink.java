@@ -60,13 +60,12 @@ import static androidx.core.content.ContextCompat.getSystemService;
 public class DashlyBlink extends Plugin {
     PluginCall permissionCall;
     private WebSocketClient webSocketClient;
-    private WifiReceiver wifiReceiver;
     private Network blinkNetwork;
 
     @PluginMethod()
     public void isBlinkSupported(PluginCall call) {
         JSObject ret = new JSObject();
-        ret.put("result", true);
+        ret.put("result", android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
         call.success(ret);
     }
 

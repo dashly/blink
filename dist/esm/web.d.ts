@@ -2,11 +2,14 @@ import { WebPlugin } from '@capacitor/core';
 import { DashlyBlinkPlugin } from './definitions';
 export declare class DashlyBlinkWeb extends WebPlugin implements DashlyBlinkPlugin {
     constructor();
+    isBlinkSupported(): Promise<{
+        value: boolean;
+    }>;
     enableLocationSevices(): Promise<{
         value: string;
     }>;
     isLocationServicesEnabled(): Promise<{
-        value: boolean;
+        value: string;
     }>;
     getCurrentWifiSSID(): Promise<{
         value: string;
