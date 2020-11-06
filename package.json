@@ -1,6 +1,6 @@
 {
   "name": "dashly-blink",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Connect over wifi to the Dashly Blink Magnet",
   "main": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
