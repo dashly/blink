@@ -184,8 +184,6 @@ public class DashlyBlink extends Plugin {
                 if (ssid.compareTo(currentSsid) == 0) {
                     Log.d("Blink", "Connected to dashly blink: " + currentSsid);
                 }
-                // bind so all api calls are performed over this new network
-                connectivity.bindProcessToNetwork(network);
 
                 JSObject ret = new JSObject();
                 ret.put("result", "BlinkOK");
@@ -209,8 +207,11 @@ public class DashlyBlink extends Plugin {
         final String ssid = call.getString("ssid");
         final String password = call.getString("password");
 
+        Log.d("Blink", "THREADED SOCKET");
+        SocketThread socket = new SocketThread(call, ssid, password, this.blinkNetwork);
+        socket.run();
 
-        String currentSsid = currentSSID();
+        /*String currentSsid = currentSSID();
         Log.d("Blink", "SSID connected for socket is: " + currentSsid);
 
         Socket socket = null;
@@ -238,6 +239,8 @@ public class DashlyBlink extends Plugin {
             Log.d("Blink", "Sent bytes [] packet : " + packet);
             socket.close();
 
+
+
             JSObject ret = new JSObject();
             ret.put("result", "BlinkOK");
             call.success(ret);
@@ -253,6 +256,85 @@ public class DashlyBlink extends Plugin {
             System.err.print(e);
             e.printStackTrace();
             Log.d("Blink", "Error creating socket IOException: " + e.getMessage());
+            call.reject("Blink104");
+        }*/
+
+
+      //  https://www.tutorialspoint.com/sending-and-receiving-data-with-sockets-in-android
+    }
+}
+
+class SocketThread implements Runnable {
+    private PluginCall call;
+    private String ssid;
+    private String password;
+    private Network blinkNetwork;
+
+    public SocketThread(PluginCall call, String ssid, String password, Network blinkNetwork) {
+        this.blinkNetwork = blinkNetwork;
+        this.call = call;
+        this.ssid = ssid;
+        this.password = password;
+    }
+    public void run() {
+
+        boolean socketSuccess = false;
+        try {
+            Socket socket;
+            OutputStreamWriter osw;
+
+            for (int i = 0; i < 20; i++) {
+                socket = this.blinkNetwork.getSocketFactory().createSocket("192.168.4.22", 80);
+                if (socket == null) {
+                    Log.d("Blink", "Socket DID NOT get Created");
+                } else {
+                    socket.setSoLinger(true, 1);
+                    socketSuccess = true;
+                    Log.d("Blink", "Packet Attempt " + i);
+                    String packet = ssid.length() + " " + password.length() + " " + ssid + password;
+                    osw = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
+                    osw.write(packet, 0, packet.length());
+                    osw.flush();
+                    osw.close();
+                    socket.close();
+                    Thread.sleep(1000);
+                }
+            }
+
+            // todo disconnect from the wifi here
+
+            JSObject ret = new JSObject();
+            ret.put("result", "BlinkOK");
+            call.success(ret);
+
+        } catch (UnknownHostException e) {
+            // todo disconnect from the wifi here
+
+            System.err.print(e);
+            e.printStackTrace();
+            Log.d("Blink", "Error creating socket UnknownHostException: " + e.getMessage());
+            call.reject("Blink103");
+
+        } catch (IOException e) {
+            if (socketSuccess) {
+                JSObject ret = new JSObject();
+                ret.put("result", "BlinkOK");
+                call.success(ret);
+            }
+            else {
+                // todo disconnect from the wifi here
+
+                System.err.print(e);
+                e.printStackTrace();
+                Log.d("Blink", "Error creating socket IOException: " + e.getMessage());
+                call.reject("Blink104");
+            }
+        } catch (InterruptedException e) {
+            // todo disconnect from the wifi here
+
+            System.err.print(e);
+            e.printStackTrace();
+            Log.d("Blink", "Error with thread sleep: " + e.getMessage());
             call.reject("Blink104");
         }
     }
